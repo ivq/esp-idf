@@ -135,6 +135,9 @@ void app_main(void)
     printf(" |                                                |\n");
     printf(" =================================================\n\n");
 
+    // XXX
+void psk_benchmark(void);
+    psk_benchmark();
     // start console REPL
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
 }

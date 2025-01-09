@@ -152,3 +152,41 @@ int esp_fast_psk(const char *password, size_t password_len, const uint8_t *ssid,
 
     return 0;
 }
+
+#include <crypto/fastpbkdf2.h>
+#include <esp_timer.h>
+
+#define PMK_LEN 32
+#define TEST_ITERATIONS 20
+
+void psk_benchmark(void)
+{
+    size_t i;
+    int64_t tick;
+    uint32_t ms;
+    uint8_t PMK[PMK_LEN];
+    uint8_t expected_pmk1[PMK_LEN] = {
+        0xe7, 0x90, 0xd0, 0x65, 0x67, 0xf0, 0xbf, 0xca, 0xca, 0x10, 0x88, 0x0b, 0x85, 0xb2, 0x33, 0xe5,
+        0xe1, 0xd5, 0xe5, 0xb8, 0xd0, 0xfd, 0x94, 0x60, 0x56, 0x95, 0x5e, 0x41, 0x5a, 0x7f, 0xfa, 0xfa
+    };
+
+    printf("PSK benchmark starts, please wait\r\n");
+
+    tick = esp_timer_get_time();
+    for (i = 0; i < TEST_ITERATIONS; ++i) {
+        fastpbkdf2_hmac_sha1((uint8_t *)"espressif", strlen("espressif"), (uint8_t *)"espressif", strlen("espressif"), 4096, PMK, PMK_LEN);
+    }
+    ms = (esp_timer_get_time() - tick) / TEST_ITERATIONS / 1000;
+    assert(!memcmp(PMK, expected_pmk1, PMK_LEN));
+    printf("fastpbkdf2_hmac_sha1 avg %u ms\r\n", ms);
+
+    tick = esp_timer_get_time();
+    for (i = 0; i < TEST_ITERATIONS; ++i) {
+        esp_fast_psk("espressif", strlen("espressif"), (uint8_t *)"espressif", strlen("espressif"), 4096, PMK, PMK_LEN);
+    }
+    ms = (esp_timer_get_time() - tick) / TEST_ITERATIONS / 1000;
+    assert(!memcmp(PMK, expected_pmk1, PMK_LEN));
+    printf("fastpbkdf2_hmac_sha1 avg %u ms\r\n", ms);
+
+    printf("PSK benchmark done\r\n");
+}
